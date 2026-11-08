@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="refresh" content="5" />
+    <title>NetWatch SOC Dashboard</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        background: #0b1120;
+        color: #e5e7eb;
+        padding: 25px;
+      }
+
+      header {
+        margin-bottom: 30px;
+      }
+
+      header h1 {
+        color: #38bdf8;
+        margin-bottom: 8px;
+      }
+
+      header p {
+        color: #94a3b8;
+      }
+
+      .section-title {
+        margin: 30px 0 18px;
+        color: #38bdf8;
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 18px;
+      }
+
+      .card {
+        background: #172033;
+        padding: 22px;
+        border-radius: 12px;
+        border: 1px solid #263449;
+      }
+
+      .card h3 {
+        color: #94a3b8;
+        font-size: 14px;
+        margin-bottom: 12px;
+      }
+
+      .card p {
+        font-size: 28px;
+        font-weight: bold;
+        color: #38bdf8;
+      }
+
+      .critical p {
+        color: #ef4444;
+      }
+      .high p {
+        color: #f97316;
+      }
+      .medium p {
+        color: #eab308;
+      }
+      .new p {
+        color: #22c55e;
+      }
+
+      .charts {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+      }
+
+      .chart-box {
+        background: #172033;
+        padding: 20px;
+        border-radius: 12px;
+        min-height: 300px;
+      }
+
+      .chart-box h3 {
+        margin-bottom: 20px;
+        color: #cbd5e1;
+      }
+
+      .table-container {
+        background: #172033;
+        padding: 20px;
+        border-radius: 12px;
+        margin-top: 30px;
+        overflow-x: auto;
+      }
+
+      .filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 20px 0;
+      }
+
+      input,
+      select,
+      button {
+        padding: 11px;
+        border-radius: 6px;
+        border: 1px solid #334155;
+        background: #0f172a;
+        color: white;
+      }
+
+      input {
+        flex: 1;
+        min-width: 180px;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      .filter-btn {
+        background: #0284c7;
+        border: none;
+      }
+
+      .ack-btn {
+        background: #b45309;
+        border: none;
+        margin: 2px;
+      }
+
+      .resolve-btn {
+        background: #15803d;
+        border: none;
+        margin: 2px;
+      }
+
+      button:hover {
+        opacity: 0.8;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 1050px;
+      }
+
+      th,
+      td {
+        padding: 13px;
+        text-align: left;
+        border-bottom: 1px solid #334155;
+      }
+
+      th {
+        color: #38bdf8;
+      }
+
+      .severity {
+        font-weight: bold;
+      }
+      .severity.CRITICAL {
+        color: #ef4444;
+      }
+      .severity.HIGH {
+        color: #f97316;
+      }
+      .severity.MEDIUM {
+        color: #eab308;
+      }
+
+      .status.NEW {
+        color: #22c55e;
+      }
+      .status.ACKNOWLEDGED {
+        color: #f59e0b;
+      }
+      .status.RESOLVED {
+        color: #4ade80;
+      }
+
+      .empty {
+        text-align: center;
+        color: #94a3b8;
+        padding: 25px;
+      }
+
+      footer {
+        text-align: center;
+        color: #64748b;
+        margin-top: 35px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <h1>🛡️ NetWatch SOC</h1>
+      <p>Network Traffic Monitoring and Anomaly Detection Dashboard</p>
+    </header>
+
+    <h2 class="section-title">Network Traffic Overview</h2>
+
+    <div class="cards">
+      <div class="card">
+        <h3>Total Packets</h3>
+        <p>{{ stats.get('total_packets', 0) }}</p>
+      </div>
+
+      <div class="card">
+        <h3>TCP Packets</h3>
+        <p>{{ stats.get('tcp_packets', 0) }}</p>
+      </div>
+
+      <div class="card">
+        <h3>UDP Packets</h3>
+        <p>{{ stats.get('udp_packets', 0) }}</p>
+      </div>
+
+      <div class="card">
+        <h3>ARP Packets</h3>
+        <p>{{ stats.get('arp_packets', 0) }}</p>
+      </div>
+
+      <div class="card">
+        <h3>Other Packets</h3>
+        <p>{{ stats.get('other_packets', 0) }}</p>
+      </div>
+    </div>
+
+    <h2 class="section-title">Security Alert Summary</h2>
+
+    <div class="cards">
+      <div class="card">
+        <h3>Total Alerts</h3>
+        <p>{{ total_alerts }}</p>
+      </div>
+
+      <div class="card critical">
+        <h3>Critical Alerts</h3>
+        <p>{{ critical_alerts }}</p>
+      </div>
+
+      <div class="card high">
+        <h3>High Alerts</h3>
+        <p>{{ high_alerts }}</p>
+      </div>
+
+      <div class="card medium">
+        <h3>Medium Alerts</h3>
+        <p>{{ medium_alerts }}</p>
+      </div>
+
+      <div class="card new">
+        <h3>New Alerts</h3>
+        <p>{{ new_alerts }}</p>
+      </div>
+    </div>
+
+    <h2 class="section-title">Security Analytics</h2>
+
+    <div class="charts">
+      <div class="chart-box">
+        <h3>Network Protocol Distribution</h3>
+        <canvas id="protocolChart"></canvas>
+      </div>
+
+      <div class="chart-box">
+        <h3>Alert Severity Distribution</h3>
+        <canvas id="severityChart"></canvas>
+      </div>
+
+      <div class="chart-box">
+        <h3>Top Alert Source IPs</h3>
+        <canvas id="sourceChart"></canvas>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <h2 class="section-title">Security Alert History</h2>
+
+      <form method="GET" action="/" class="filters">
+        <input
+          type="text"
+          name="search"
+          placeholder="Search IP or alert..."
+          value="{{ search }}"
+        />
+
+        <select name="severity">
+          <option value="ALL">All Severities</option>
+          <option value="CRITICAL">Critical</option>
+          <option value="HIGH">High</option>
+          <option value="MEDIUM">Medium</option>
+        </select>
+
+        <select name="alert_type">
+          <option value="ALL">All Attack Types</option>
+          <option value="Port Scan">Port Scan</option>
+          <option value="Possible ARP Spoofing">ARP Spoofing</option>
+          <option value="Possible DNS Tunnelling">DNS Tunnelling</option>
+          <option value="Test Port Scan">Test Port Scan</option>
+        </select>
+
+        <button type="submit" class="filter-btn">Apply Filters</button>
+        <button
+          type="button"
+          class="filter-btn"
+          onclick="window.location.href = '/'"
+        >
+          Reset
+        </button>
+      </form>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Alert Type</th>
+            <th>Source IP</th>
+            <th>Severity</th>
+            <th>Description</th>
+            <th>MITRE Technique</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for alert in alerts %}
+          <tr>
+            <td>{{ alert[1] }}</td>
+            <td>{{ alert[2] }}</td>
+            <td>{{ alert[3] }}</td>
+            <td class="severity {{ alert[4] }}">{{ alert[4] }}</td>
+            <td>{{ alert[5] }}</td>
+            <td>{{ alert[6] }}</td>
+            <td class="status {{ alert[7] }}">{{ alert[7] }}</td>
+
+            <td>
+              {% if alert[7] == "NEW" %}
+              <form method="POST" action="/alert/{{ alert[0] }}/status">
+                <input type="hidden" name="status" value="ACKNOWLEDGED" />
+                <button type="submit" class="ack-btn">Acknowledge</button>
+              </form>
+              {% endif %} {% if alert[7] != "RESOLVED" %}
+              <form method="POST" action="/alert/{{ alert[0] }}/status">
+                <input type="hidden" name="status" value="RESOLVED" />
+                <button type="submit" class="resolve-btn">Resolve</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8" class="empty">No security alerts found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <footer>NetWatch SOC | Network Security Monitoring System</footer>
+
+    <script>
+      const chartOptions = {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+              legend: {
+                  labels: { color: "#e5e7eb" }
+              }
+          }
+      };
+
+      new Chart(document.getElementById("protocolChart"), {
+          type: "doughnut",
+          data: {
+              labels: ["TCP", "UDP", "ARP", "Other"],
+              datasets: [{
+                  data: [
+                      {{ stats.get('tcp_packets', 0) }},
+                      {{ stats.get('udp_packets', 0) }},
+                      {{ stats.get('arp_packets', 0) }},
+                      {{ stats.get('other_packets', 0) }}
+                  ]
+              }]
+          },
+          options: chartOptions
+      });
+
+      new Chart(document.getElementById("severityChart"), {
+          type: "doughnut",
+          data: {
+              labels: {{ severity_labels | tojson }},
+              datasets: [{
+                  data: {{ severity_values | tojson }}
+              }]
+          },
+          options: chartOptions
+      });
+
+      new Chart(document.getElementById("sourceChart"), {
+          type: "bar",
+          data: {
+              labels: {{ source_labels | tojson }},
+              datasets: [{
+                  label: "Alert Count",
+                  data: {{ source_values | tojson }}
+              }]
+          },
+          options: {
+              ...chartOptions,
+              scales: {
+                  x: {
+                      ticks: { color: "#e5e7eb" }
+                  },
+                  y: {
+                      beginAtZero: true,
+                      ticks: { color: "#e5e7eb", precision: 0 }
+                  }
+              }
+          }
+      });
+    </script>
+  </body>
+</html>
